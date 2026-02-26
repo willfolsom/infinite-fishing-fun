@@ -57,6 +57,12 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        "game-panel": "hsl(var(--game-panel))",
+        "game-panel-border": "hsl(var(--game-panel-border))",
+        "game-text": "hsl(var(--game-text))",
+        "game-text-muted": "hsl(var(--game-text-muted))",
+        "game-highlight": "hsl(var(--game-highlight))",
+        "game-water": "hsl(var(--game-water))",
       },
       borderRadius: {
         lg: "var(--radius)",
