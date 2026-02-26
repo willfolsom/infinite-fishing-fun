@@ -1,12 +1,23 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useCallback } from 'react';
+import GameCanvas from '@/components/game/GameCanvas';
+import GameUI from '@/components/game/GameUI';
 
 const Index = () => {
+  const [catches, setCatches] = useState(0);
+  const [fishingState, setFishingState] = useState<'idle' | 'casting' | 'waiting' | 'caught'>('idle');
+
+  const handleCatch = useCallback(() => {
+    setCatches(c => c + 1);
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="w-screen h-screen overflow-hidden bg-background relative">
+      <GameCanvas
+        onCatch={handleCatch}
+        fishingState={fishingState}
+        setFishingState={setFishingState}
+      />
+      <GameUI catches={catches} fishingState={fishingState} />
     </div>
   );
 };
