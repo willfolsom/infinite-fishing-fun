@@ -1,14 +1,13 @@
+import { useState, useCallback } from 'react';
+import { useEffect } from 'react';
+
 interface GameUIProps {
   catches: number;
   fishingState: 'idle' | 'casting' | 'waiting' | 'caught';
+  catchAnim: { fishName: string; show: boolean };
 }
 
-const FISH_NAMES = [
-  'Bass', 'Trout', 'Salmon', 'Catfish', 'Pike', 'Perch', 'Carp', 'Bluegill',
-  'Sunfish', 'Walleye', 'Sturgeon', 'Eel', 'Goldfish', 'Koi', 'Tuna',
-];
-
-export default function GameUI({ catches, fishingState }: GameUIProps) {
+export default function GameUI({ catches, fishingState, catchAnim }: GameUIProps) {
   return (
     <div className="absolute inset-0 pointer-events-none select-none">
       {/* Top bar */}
@@ -42,6 +41,19 @@ export default function GameUI({ catches, fishingState }: GameUIProps) {
           <div className="bg-game-highlight/90 backdrop-blur-sm rounded-2xl px-6 py-3 border-2 border-game-panel-border">
             <p className="text-game-text font-bold text-xl">🐟 A fish is biting! 🐟</p>
             <p className="text-game-text text-sm text-center font-semibold">Press F to catch!</p>
+          </div>
+        </div>
+      )}
+
+      {/* Catch celebration animation */}
+      {catchAnim.show && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="animate-catch-celebrate">
+            <div className="bg-game-highlight/95 backdrop-blur-md rounded-3xl px-10 py-6 border-4 border-game-panel-border shadow-2xl text-center">
+              <p className="text-5xl mb-2">🐟</p>
+              <p className="text-game-text font-bold text-2xl">You caught a</p>
+              <p className="text-game-text font-bold text-3xl mt-1">{catchAnim.fishName}!</p>
+            </div>
           </div>
         </div>
       )}

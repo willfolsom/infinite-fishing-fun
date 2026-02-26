@@ -23,29 +23,34 @@ interface PlayerProps {
   onFish: () => void;
   fishingState: 'idle' | 'casting' | 'waiting' | 'caught';
   setFishingState: (state: 'idle' | 'casting' | 'waiting' | 'caught') => void;
+  onShowCatchAnim: (fishName: string) => void;
 }
 
-export default function Player({ onPositionChange, onFish, fishingState, setFishingState }: PlayerProps) {
+const FISH_NAMES = [
+  'Bass', 'Trout', 'Salmon', 'Catfish', 'Pike', 'Perch', 'Carp', 'Bluegill',
+  'Sunfish', 'Walleye', 'Sturgeon', 'Eel', 'Goldfish', 'Koi', 'Tuna',
+];
+
+export default function Player({ onPositionChange, onFish, fishingState, setFishingState, onShowCatchAnim }: PlayerProps) {
   const playerRef = useRef<THREE.Group>(null);
   const rodRef = useRef<THREE.Group>(null);
   const bobberRef = useRef<THREE.Mesh>(null);
   const spawnPos = useRef(findSafeSpawn());
   const posRef = useRef(spawnPos.current.clone());
-  const velRef = useRef(new THREE.Vector3());
   const keysRef = useRef<Set<string>>(new Set());
   const facingRef = useRef(0);
   const fishTimerRef = useRef(0);
   const lastChunkRef = useRef('');
-  
+  const catchAnimRef = useRef(0);
 
   const [bobberPos, setBobberPos] = useState<THREE.Vector3 | null>(null);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     keysRef.current.add(e.key.toLowerCase());
     if (e.key.toLowerCase() === 'f' && fishingState === 'idle') {
-      // Check if near water
       const pos = posRef.current;
       const checkDist = 3;
+      // Eyes face +Z in local space, so forward is the facing direction
       const dir = new THREE.Vector3(Math.sin(facingRef.current), 0, Math.cos(facingRef.current));
       const targetX = pos.x + dir.x * checkDist;
       const targetZ = pos.z + dir.z * checkDist;
@@ -57,16 +62,18 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
       }
     }
     if (e.key.toLowerCase() === 'f' && fishingState === 'waiting') {
-      // Reel in - miss
       setFishingState('idle');
       setBobberPos(null);
     }
     if (e.key.toLowerCase() === 'f' && fishingState === 'caught') {
+      const fishName = FISH_NAMES[Math.floor(Math.random() * FISH_NAMES.length)];
       onFish();
+      onShowCatchAnim(fishName);
+      catchAnimRef.current = 1.5; // 1.5 seconds of celebration
       setFishingState('idle');
       setBobberPos(null);
     }
-  }, [fishingState, setFishingState, onFish]);
+  }, [fishingState, setFishingState, onFish, onShowCatchAnim]);
 
   const handleKeyUp = useCallback((e: KeyboardEvent) => {
     keysRef.current.delete(e.key.toLowerCase());
@@ -85,7 +92,15 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
     if (!playerRef.current) return;
     const keys = keysRef.current;
     const speed = 8;
-    const moving = fishingState === 'idle';
+    const moving = fishingState === 'idle' && catchAnimRef.current <= 0;
+
+    // Catch celebration countdown
+    if (catchAnimRef.current > 0) {
+      catchAnimRef.current -= delta;
+      // Jump animation during celebration
+      const jumpPhase = Math.sin((1.5 - catchAnimRef.current) * 8) * 0.5;
+      playerRef.current.position.y = posRef.current.y + Math.max(0, jumpPhase);
+    }
 
     if (moving) {
       const moveDir = new THREE.Vector3();
@@ -100,7 +115,6 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
         const newX = posRef.current.x + moveDir.x * speed * delta;
         const newZ = posRef.current.z + moveDir.z * speed * delta;
 
-        // Don't walk into water
         if (!isWater(newX, newZ)) {
           posRef.current.x = newX;
           posRef.current.z = newZ;
@@ -113,7 +127,12 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
     const h = getTerrainHeight(posRef.current.x, posRef.current.z);
     posRef.current.y = Math.max(h, 0.1);
 
-    playerRef.current.position.copy(posRef.current);
+    if (catchAnimRef.current <= 0) {
+      playerRef.current.position.copy(posRef.current);
+    } else {
+      playerRef.current.position.x = posRef.current.x;
+      playerRef.current.position.z = posRef.current.z;
+    }
     playerRef.current.rotation.y = facingRef.current;
 
     // Only update parent when chunk changes
@@ -156,12 +175,12 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
           <sphereGeometry args={[0.35, 8, 8]} />
           <meshToonMaterial color="#ffe4c4" />
         </mesh>
-        {/* Eyes */}
-        <mesh position={[-0.12, 1.55, -0.28]}>
+        {/* Eyes - facing +Z (forward direction) */}
+        <mesh position={[-0.12, 1.55, 0.28]}>
           <sphereGeometry args={[0.06, 6, 6]} />
           <meshBasicMaterial color="#2d2d2d" />
         </mesh>
-        <mesh position={[0.12, 1.55, -0.28]}>
+        <mesh position={[0.12, 1.55, 0.28]}>
           <sphereGeometry args={[0.06, 6, 6]} />
           <meshBasicMaterial color="#2d2d2d" />
         </mesh>
@@ -176,7 +195,7 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
         </mesh>
         {/* Fishing Rod (when fishing) */}
         {fishingState !== 'idle' && (
-          <group ref={rodRef} position={[0.4, 1.0, -0.2]} rotation={[0.5, 0, 0.3]}>
+          <group ref={rodRef} position={[0.4, 1.0, 0.2]} rotation={[-0.5, 0, 0.3]}>
             <mesh>
               <cylinderGeometry args={[0.03, 0.02, 2.5, 4]} />
               <meshToonMaterial color="#8B4513" />
