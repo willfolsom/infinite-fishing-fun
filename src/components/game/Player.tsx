@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getTerrainHeight, isWater } from '@/lib/noise';
 
@@ -36,7 +36,7 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
   const facingRef = useRef(0);
   const fishTimerRef = useRef(0);
   const lastChunkRef = useRef('');
-  const { camera } = useThree();
+  
 
   const [bobberPos, setBobberPos] = useState<THREE.Vector3 | null>(null);
 
@@ -96,25 +96,15 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
 
       if (moveDir.lengthSq() > 0) {
         moveDir.normalize();
-        // Move relative to camera
-        const camAngle = Math.atan2(
-          camera.position.x - posRef.current.x,
-          camera.position.z - posRef.current.z
-        );
-        const rotated = new THREE.Vector3(
-          moveDir.x * Math.cos(camAngle) - moveDir.z * Math.sin(camAngle),
-          0,
-          moveDir.x * Math.sin(camAngle) + moveDir.z * Math.cos(camAngle)
-        );
 
-        const newX = posRef.current.x + rotated.x * speed * delta;
-        const newZ = posRef.current.z + rotated.z * speed * delta;
+        const newX = posRef.current.x + moveDir.x * speed * delta;
+        const newZ = posRef.current.z + moveDir.z * speed * delta;
 
         // Don't walk into water
         if (!isWater(newX, newZ)) {
           posRef.current.x = newX;
           posRef.current.z = newZ;
-          facingRef.current = Math.atan2(rotated.x, rotated.z);
+          facingRef.current = Math.atan2(moveDir.x, moveDir.z);
         }
       }
     }
@@ -126,18 +116,7 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
     playerRef.current.position.copy(posRef.current);
     playerRef.current.rotation.y = facingRef.current;
 
-    // Camera follow
-    const camDist = 15;
-    const camHeight = 10;
-    const idealCamPos = new THREE.Vector3(
-      posRef.current.x + Math.sin(facingRef.current + Math.PI) * camDist,
-      posRef.current.y + camHeight,
-      posRef.current.z + Math.cos(facingRef.current + Math.PI) * camDist
-    );
-    camera.position.lerp(idealCamPos, 0.08);
-    camera.lookAt(posRef.current.x, posRef.current.y + 1, posRef.current.z);
-
-    // Only update parent when chunk changes to avoid excessive re-renders
+    // Only update parent when chunk changes
     const chunkKey = `${Math.floor(posRef.current.x / 32)},${Math.floor(posRef.current.z / 32)}`;
     if (chunkKey !== lastChunkRef.current) {
       lastChunkRef.current = chunkKey;
