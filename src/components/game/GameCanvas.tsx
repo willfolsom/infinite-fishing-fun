@@ -10,6 +10,7 @@ interface GameCanvasProps {
   onCatch: () => void;
   fishingState: 'idle' | 'casting' | 'waiting' | 'caught';
   setFishingState: (state: 'idle' | 'casting' | 'waiting' | 'caught') => void;
+  onShowCatchAnim: (fishName: string) => void;
 }
 
 // Camera that follows the player from a fixed isometric offset
@@ -23,7 +24,7 @@ function FollowCamera({ target }: { target: React.MutableRefObject<THREE.Vector3
   return null;
 }
 
-export default function GameCanvas({ onCatch, fishingState, setFishingState }: GameCanvasProps) {
+export default function GameCanvas({ onCatch, fishingState, setFishingState, onShowCatchAnim }: GameCanvasProps) {
   const [playerPos, setPlayerPos] = useState(new THREE.Vector3(5, 0, 5));
   const playerPosRef = useRef(new THREE.Vector3(5, 0, 5));
 
@@ -62,6 +63,7 @@ export default function GameCanvas({ onCatch, fishingState, setFishingState }: G
         onFish={onCatch}
         fishingState={fishingState}
         setFishingState={setFishingState}
+        onShowCatchAnim={onShowCatchAnim}
       />
     </Canvas>
   );
