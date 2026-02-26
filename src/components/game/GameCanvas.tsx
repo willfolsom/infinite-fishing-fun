@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useState, useCallback, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import Terrain from './Terrain';
 import Player from './Player';
@@ -12,17 +12,30 @@ interface GameCanvasProps {
   setFishingState: (state: 'idle' | 'casting' | 'waiting' | 'caught') => void;
 }
 
+// Camera that follows the player from a fixed isometric offset
+function FollowCamera({ target }: { target: React.MutableRefObject<THREE.Vector3> }) {
+  useFrame(({ camera }) => {
+    const offset = new THREE.Vector3(20, 25, 20);
+    const desired = target.current.clone().add(offset);
+    camera.position.lerp(desired, 0.1);
+    camera.lookAt(target.current);
+  });
+  return null;
+}
+
 export default function GameCanvas({ onCatch, fishingState, setFishingState }: GameCanvasProps) {
   const [playerPos, setPlayerPos] = useState(new THREE.Vector3(5, 0, 5));
+  const playerPosRef = useRef(new THREE.Vector3(5, 0, 5));
 
   const handlePositionChange = useCallback((pos: THREE.Vector3) => {
+    playerPosRef.current.copy(pos);
     setPlayerPos(pos);
   }, []);
 
   return (
     <Canvas
       shadows
-      camera={{ position: [5, 10, 20], fov: 50, near: 0.1, far: 500 }}
+      camera={{ position: [25, 25, 25], fov: 45, near: 0.1, far: 500 }}
       style={{ width: '100%', height: '100%' }}
     >
       <color attach="background" args={['#87CEEB']} />
@@ -41,6 +54,7 @@ export default function GameCanvas({ onCatch, fishingState, setFishingState }: G
         shadow-camera-bottom={-30}
       />
       <hemisphereLight args={['#87CEEB', '#5b8c5a', 0.4]} />
+      <FollowCamera target={playerPosRef} />
       <Terrain playerPosition={playerPos} />
       <Fish playerPosition={playerPos} />
       <Player
