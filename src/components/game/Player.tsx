@@ -3,6 +3,21 @@ import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getTerrainHeight, isWater } from '@/lib/noise';
 
+// Find a safe spawn point on land
+function findSafeSpawn(): THREE.Vector3 {
+  for (let r = 0; r < 200; r += 2) {
+    for (let angle = 0; angle < Math.PI * 2; angle += 0.5) {
+      const x = Math.cos(angle) * r;
+      const z = Math.sin(angle) * r;
+      if (!isWater(x, z)) {
+        const h = getTerrainHeight(x, z);
+        return new THREE.Vector3(x, Math.max(h, 0.1), z);
+      }
+    }
+  }
+  return new THREE.Vector3(0, 1, 0);
+}
+
 interface PlayerProps {
   onPositionChange: (pos: THREE.Vector3) => void;
   onFish: () => void;
@@ -14,11 +29,13 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
   const playerRef = useRef<THREE.Group>(null);
   const rodRef = useRef<THREE.Group>(null);
   const bobberRef = useRef<THREE.Mesh>(null);
-  const posRef = useRef(new THREE.Vector3(5, 0, 5));
+  const spawnPos = useRef(findSafeSpawn());
+  const posRef = useRef(spawnPos.current.clone());
   const velRef = useRef(new THREE.Vector3());
   const keysRef = useRef<Set<string>>(new Set());
   const facingRef = useRef(0);
   const fishTimerRef = useRef(0);
+  const lastChunkRef = useRef('');
   const { camera } = useThree();
 
   const [bobberPos, setBobberPos] = useState<THREE.Vector3 | null>(null);
@@ -117,10 +134,15 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
       posRef.current.y + camHeight,
       posRef.current.z + Math.cos(facingRef.current + Math.PI) * camDist
     );
-    camera.position.lerp(idealCamPos, 0.05);
+    camera.position.lerp(idealCamPos, 0.08);
     camera.lookAt(posRef.current.x, posRef.current.y + 1, posRef.current.z);
 
-    onPositionChange(posRef.current.clone());
+    // Only update parent when chunk changes to avoid excessive re-renders
+    const chunkKey = `${Math.floor(posRef.current.x / 32)},${Math.floor(posRef.current.z / 32)}`;
+    if (chunkKey !== lastChunkRef.current) {
+      lastChunkRef.current = chunkKey;
+      onPositionChange(posRef.current.clone());
+    }
 
     // Fish bite timer
     if (fishingState === 'waiting') {
