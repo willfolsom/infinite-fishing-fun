@@ -11,7 +11,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="w-screen h-screen overflow-hidden bg-background relative">
+    <div className="w-screen h-screen overflow-hidden bg-background relative" tabIndex={0} autoFocus>
       <GameCanvas
         onCatch={handleCatch}
         fishingState={fishingState}
