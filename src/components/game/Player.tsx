@@ -104,10 +104,11 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
 
     if (moving) {
       const moveDir = new THREE.Vector3();
-      if (keys.has('w') || keys.has('arrowup')) moveDir.z -= 1;
-      if (keys.has('s') || keys.has('arrowdown')) moveDir.z += 1;
-      if (keys.has('a') || keys.has('arrowleft')) moveDir.x -= 1;
-      if (keys.has('d') || keys.has('arrowright')) moveDir.x += 1;
+      // Rotated 45° to align with isometric camera at (20,25,20)
+      if (keys.has('w') || keys.has('arrowup')) { moveDir.x -= 1; moveDir.z -= 1; }
+      if (keys.has('s') || keys.has('arrowdown')) { moveDir.x += 1; moveDir.z += 1; }
+      if (keys.has('a') || keys.has('arrowleft')) { moveDir.x -= 1; moveDir.z += 1; }
+      if (keys.has('d') || keys.has('arrowright')) { moveDir.x += 1; moveDir.z -= 1; }
 
       if (moveDir.lengthSq() > 0) {
         moveDir.normalize();
