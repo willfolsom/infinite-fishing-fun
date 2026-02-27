@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import Terrain from './Terrain';
@@ -17,8 +17,7 @@ interface GameCanvasProps {
 function FollowCamera({ target }: { target: React.MutableRefObject<THREE.Vector3> }) {
   useFrame(({ camera }) => {
     const offset = new THREE.Vector3(20, 25, 20);
-    const desired = target.current.clone().add(offset);
-    camera.position.lerp(desired, 0.1);
+    camera.position.copy(target.current).add(offset);
     camera.lookAt(target.current);
   });
   return null;
@@ -30,7 +29,20 @@ export default function GameCanvas({ onCatch, fishingState, setFishingState, onS
 
   const handlePositionChange = useCallback((pos: THREE.Vector3) => {
     playerPosRef.current.copy(pos);
-    setPlayerPos(pos);
+  }, []);
+
+  // Update terrain chunks less frequently
+  const lastChunkRef = useRef('');
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const p = playerPosRef.current;
+      const chunkKey = `${Math.floor(p.x / 32)},${Math.floor(p.z / 32)}`;
+      if (chunkKey !== lastChunkRef.current) {
+        lastChunkRef.current = chunkKey;
+        setPlayerPos(p.clone());
+      }
+    }, 200);
+    return () => clearInterval(interval);
   }, []);
 
   return (
