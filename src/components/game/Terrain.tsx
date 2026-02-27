@@ -3,11 +3,52 @@ import * as THREE from 'three';
 import { getTerrainHeight, noise2D } from '@/lib/noise';
 
 const CHUNK_SIZE = 32;
-const RESOLUTION = 32;
+const RESOLUTION = 64;
 
 interface TerrainChunkProps {
   chunkX: number;
   chunkZ: number;
+}
+
+// Cartoonish color palettes
+const GRASS_COLORS = [
+  [0.30, 0.72, 0.28],  // vivid green
+  [0.38, 0.80, 0.32],  // light green
+  [0.26, 0.62, 0.24],  // dark green
+  [0.42, 0.75, 0.30],  // lime-ish
+  [0.34, 0.65, 0.22],  // olive green
+];
+
+const BEACH_COLORS = [
+  [0.88, 0.82, 0.58],  // sand
+  [0.78, 0.72, 0.48],  // dark sand
+  [0.92, 0.86, 0.64],  // light sand
+  [0.70, 0.76, 0.42],  // sandy green
+];
+
+const HILL_COLORS = [
+  [0.45, 0.55, 0.30],  // mossy
+  [0.38, 0.48, 0.26],  // dark mossy
+  [0.52, 0.50, 0.35],  // rocky brown
+  [0.32, 0.58, 0.28],  // hill green
+];
+
+const SAND_COLORS = [
+  [0.80, 0.74, 0.52],
+  [0.72, 0.66, 0.46],
+  [0.85, 0.78, 0.56],
+];
+
+function hashTile(x: number, z: number): number {
+  // Quick integer hash for deterministic per-tile color picking
+  let h = (Math.floor(x * 3.7) * 374761393 + Math.floor(z * 3.7) * 668265263) | 0;
+  h = ((h ^ (h >> 13)) * 1274126177) | 0;
+  return Math.abs(h);
+}
+
+function pickColor(palette: number[][], x: number, z: number): number[] {
+  const idx = hashTile(x, z) % palette.length;
+  return palette[idx];
 }
 
 function TerrainChunk({ chunkX, chunkZ }: TerrainChunkProps) {
@@ -26,38 +67,32 @@ function TerrainChunk({ chunkX, chunkZ }: TerrainChunkProps) {
       const h = getTerrainHeight(x, z);
       positions.setY(i, h);
 
-      // Texture variation using high-frequency noise
-      const texNoise1 = noise2D(x * 0.8, z * 0.8) * 0.08;
-      const texNoise2 = noise2D(x * 2.5 + 100, z * 2.5 + 100) * 0.05;
-      const texNoise3 = noise2D(x * 5.0 + 200, z * 5.0 + 200) * 0.03;
-      const patch = texNoise1 + texNoise2 + texNoise3;
+      // High-freq noise for subtle per-vertex jitter
+      const jitter = noise2D(x * 6.0 + 500, z * 6.0 + 500) * 0.04;
 
-      // Color based on height with texture variation
+      let base: number[];
       if (h < -0.5) {
-        colors[i * 3] = 0.76 + patch; colors[i * 3 + 1] = 0.70 + patch; colors[i * 3 + 2] = 0.50 + patch * 0.5;
+        base = pickColor(SAND_COLORS, x, z);
         hasWaterFlag = true;
       } else if (h < 0) {
-        colors[i * 3] = 0.65 + patch; colors[i * 3 + 1] = 0.75 + patch; colors[i * 3 + 2] = 0.45 + patch * 0.5;
+        base = pickColor(BEACH_COLORS, x, z);
         hasWaterFlag = true;
       } else if (h < 0.5) {
-        // Beach / light grass - mix green and sandy brown patches
-        const brownMix = noise2D(x * 1.5 + 50, z * 1.5 + 50) > 0.1 ? 0.06 : -0.04;
-        colors[i * 3] = 0.55 + patch + brownMix; colors[i * 3 + 1] = 0.78 + patch - Math.abs(brownMix); colors[i * 3 + 2] = 0.38 + patch * 0.5;
+        base = pickColor(BEACH_COLORS, x, z);
       } else if (h < 2) {
-        // Grass - alternating darker/lighter patches
-        const darkPatch = noise2D(x * 3.0 + 300, z * 3.0 + 300) > 0.15 ? -0.06 : 0.04;
-        colors[i * 3] = 0.35 + patch + darkPatch * 0.5; colors[i * 3 + 1] = 0.70 + patch + darkPatch; colors[i * 3 + 2] = 0.30 + patch * 0.3;
+        base = pickColor(GRASS_COLORS, x, z);
       } else {
-        // Hill - rocky brown/green mix
-        const rockMix = noise2D(x * 4.0, z * 4.0) > 0 ? 0.05 : -0.05;
-        colors[i * 3] = 0.30 + patch + rockMix; colors[i * 3 + 1] = 0.60 + patch - Math.abs(rockMix) * 0.5; colors[i * 3 + 2] = 0.25 + patch * 0.3;
+        base = pickColor(HILL_COLORS, x, z);
       }
+
+      colors[i * 3]     = base[0] + jitter;
+      colors[i * 3 + 1] = base[1] + jitter;
+      colors[i * 3 + 2] = base[2] + jitter * 0.5;
     }
 
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
 
-    // Water plane for this chunk if needed
     const waterGeo = hasWaterFlag
       ? new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE)
       : null;
@@ -72,7 +107,7 @@ function TerrainChunk({ chunkX, chunkZ }: TerrainChunkProps) {
   return (
     <group position={[worldX, 0, worldZ]}>
       <mesh ref={meshRef} geometry={geometry} receiveShadow>
-        <meshLambertMaterial vertexColors side={THREE.DoubleSide} />
+        <meshToonMaterial vertexColors side={THREE.DoubleSide} />
       </mesh>
       {hasWater && waterGeometry && (
         <mesh geometry={waterGeometry} position={[0, -0.05, 0]} receiveShadow>
