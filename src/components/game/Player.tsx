@@ -135,12 +135,8 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
     }
     playerRef.current.rotation.y = facingRef.current;
 
-    // Only update parent when chunk changes
-    const chunkKey = `${Math.floor(posRef.current.x / 32)},${Math.floor(posRef.current.z / 32)}`;
-    if (chunkKey !== lastChunkRef.current) {
-      lastChunkRef.current = chunkKey;
-      onPositionChange(posRef.current.clone());
-    }
+    // Update camera tracking every frame
+    onPositionChange(posRef.current.clone());
 
     // Fish bite timer
     if (fishingState === 'waiting') {
