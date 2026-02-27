@@ -109,3 +109,35 @@
     overflow: hidden;
   }
 }
+
+@keyframes catch-flash {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes catch-card {
+  0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes catch-fish-bounce {
+  0% { transform: scale(0) translateY(20px); opacity: 0; }
+  50% { transform: scale(1.3) translateY(-10px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes catch-text {
+  0% { transform: translateY(15px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes catch-star {
+  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes catch-particle {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  60% { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--particle-x)), calc(-50% + var(--particle-y))) scale(1); opacity: 0; }
+}
