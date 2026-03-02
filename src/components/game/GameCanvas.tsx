@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import Terrain from './Terrain';
 import Player from './Player';
 import Fish from './Fish';
+import Trees from './Trees';
 import { Sky } from '@react-three/drei';
 
 interface GameCanvasProps {
@@ -70,6 +71,7 @@ export default function GameCanvas({ onCatch, fishingState, setFishingState, onS
       <FollowCamera target={playerPosRef} />
       <Terrain playerPosition={playerPos} />
       <Fish playerPosition={playerPos} />
+      <Trees playerPosition={playerPos} />
       <Player
         onPositionChange={handlePositionChange}
         onFish={onCatch}
