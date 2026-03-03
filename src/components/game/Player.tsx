@@ -192,7 +192,7 @@ export default function Player({ onPositionChange, onFish, fishingState, setFish
         </mesh>
         {/* Fishing Rod (when fishing) */}
         {fishingState !== 'idle' && (
-          <group ref={rodRef} position={[0.4, 1.2, 0.2]} rotation={[0.3, 0, 0.3]}>
+          <group ref={rodRef} position={[0.35, 0.7, 0.3]} rotation={[0.5, 0, 0.2]}>
             <mesh>
               <cylinderGeometry args={[0.03, 0.02, 2.5, 4]} />
               <meshToonMaterial color="#8B4513" />
